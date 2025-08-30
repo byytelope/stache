@@ -2,7 +2,6 @@ package stache
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"sync"
 	"testing"

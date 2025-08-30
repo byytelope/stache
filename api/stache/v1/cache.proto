@@ -1,0 +1,68 @@
+edition = "2023";
+
+package stache.v1;
+
+option go_package = "github.com/byytelope/stache/api/stache/v1;stachev1";
+
+message SetRequest {
+  string key = 1;
+  bytes value = 2;
+  int64 ttl = 3;
+  string content_type = 4;
+}
+
+message SetResponse {}
+
+message GetRequest {
+  string key = 1;
+}
+
+message GetResponse {
+  bytes value = 1;
+  string content_type = 2;
+  int64 expires_at_ms = 3;
+}
+
+message DeleteRequest {
+  string key = 1;
+}
+
+message DeleteResponse {
+  bool deleted = 1;
+}
+
+message EntryInfo {
+  string key = 1;
+  uint32 size = 2;
+  string content_type = 3;
+  int64 expires_at_ms = 4;
+}
+
+message ListEntriesRequest {}
+message ListEntriesResponse {
+  repeated EntryInfo entries = 1;
+}
+
+message BatchGetRequest {
+  repeated string keys = 1;
+}
+
+message BatchGetResponse {
+  repeated GetResponseItem items = 1;
+}
+
+message GetResponseItem {
+  string key = 1;
+  bytes value = 2;
+  string content_type = 3;
+  int64 expires_at_ms = 4;
+  bool found = 5;
+}
+
+service CacheService {
+  rpc Set(SetRequest) returns (SetResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc ListEntries(ListEntriesRequest) returns (ListEntriesResponse);
+  rpc BatchGet(BatchGetRequest) returns (BatchGetResponse);
+}

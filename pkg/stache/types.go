@@ -28,7 +28,7 @@ const (
 
 // Meta holds metadata for a cache entry, including its TTL and content type.
 type Meta struct {
-	// TTL specifies the time-to-live for a value.
+	// TTL specifies the time-to-live for a value in seconds.
 	// If 0 or negative, the value never expires,
 	TTL time.Duration
 

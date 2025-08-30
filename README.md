@@ -1,5 +1,7 @@
 # 🥸 Stache
 
-Simple cache[^yo] written to learn Go
+Simple in-memory cache written to learn Go
 
-[^yo]: Not ready for prod use
+- Uses protobufs with ConnectRPC (GRPC/HTTP1.1 & H2)
+
+<small>*Not ready for prod use!*</small>

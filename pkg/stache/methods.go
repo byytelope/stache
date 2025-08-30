@@ -127,6 +127,27 @@ func (c *Cache) GetJSON(key string, out any) error {
 	return nil
 }
 
+// GetEntry returns metadata for a single key (O(1)).
+func (c *Cache) GetEntry(key string) (EntryInfo, error) {
+	now := time.Now()
+
+	c.mutex.RLock()
+	e, ok := c.index[key]
+	c.mutex.RUnlock()
+	if !ok {
+		return EntryInfo{}, ErrNotFound
+	}
+	if !e.expiresAt.IsZero() && e.expiresAt.Before(now) {
+		c.mutex.Lock()
+		if cur, ok2 := c.index[key]; ok2 && cur.expiresAt.Equal(e.expiresAt) {
+			delete(c.index, key)
+		}
+		c.mutex.Unlock()
+		return EntryInfo{}, ErrNotFound
+	}
+	return EntryInfo{Key: key, ContentType: e.contentType, ExpiresAt: e.expiresAt, Size: len(e.value)}, nil
+}
+
 // Delete removes the entry for the given key, if present.
 // It returns the removed entry and a boolean indicating whether it existed.
 func (c *Cache) Delete(key string) (cacheEntry, bool) {
