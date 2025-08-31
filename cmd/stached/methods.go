@@ -3,11 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
@@ -47,6 +42,7 @@ func (s *cacheServer) Get(
 	if key == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("key required"))
 	}
+
 	b, err := s.cache.GetBytes(key)
 	if err != nil {
 		if errors.Is(err, stache.ErrNotFound) {
@@ -54,14 +50,17 @@ func (s *cacheServer) Get(
 		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+
 	entry, err := s.cache.GetEntry(key)
 	if err != nil && !errors.Is(err, stache.ErrNotFound) {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+
 	var expMs int64
 	if !entry.ExpiresAt.IsZero() {
 		expMs = entry.ExpiresAt.UnixMilli()
 	}
+
 	ct := string(entry.ContentType)
 	res := &stachev1.GetResponse{
 		Value:       b,
@@ -102,14 +101,4 @@ func (s *cacheServer) ListEntries(ctx context.Context, _ *connect.Request[stache
 	}
 
 	return connect.NewResponse(&stachev1.ListEntriesResponse{Entries: out}), nil
-}
-
-func waitForShutdown(s *http.Server, timeout time.Duration) {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
-	<-ch
-	log.Println("shutting down...")
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	_ = s.Shutdown(ctx)
 }

@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
@@ -18,14 +23,37 @@ import (
 )
 
 type cacheServer struct {
-	cache *stache.Cache
+	cache  *stache.Cache
+	logger *slog.Logger
 	stachev1connect.UnimplementedCacheServiceHandler
+}
+
+func waitForShutdown(s *http.Server, timeout time.Duration) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	<-ch
+	log.Println("shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	_ = s.Shutdown(ctx)
 }
 
 func main() {
 	c := stache.NewCache()
-	service := &cacheServer{cache: c}
-	path, handler := stachev1connect.NewCacheServiceHandler(service, connect.WithInterceptors())
+	logger := slog.New(
+		slog.NewJSONHandler(
+			os.Stdout,
+			&slog.HandlerOptions{
+				Level: slog.LevelInfo,
+			},
+		),
+	)
+	service := &cacheServer{cache: c, logger: logger}
+
+	path, handler := stachev1connect.NewCacheServiceHandler(
+		service,
+		connect.WithInterceptors(unaryLogging(logger)),
+	)
 
 	checker := grpchealth.NewStaticChecker("stache.v1.CacheService")
 	reflector := grpcreflect.NewStaticReflector("stache.v1.CacheService")
